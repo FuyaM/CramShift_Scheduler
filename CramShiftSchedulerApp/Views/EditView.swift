@@ -5,6 +5,9 @@ struct EditView: View {
     @ObservedObject var ocrViewModel: OCRViewModel
     @State private var selectedDay: String = "月曜日"
     @State private var memo: String = ""
+    @State private var showShare = false
+    @State private var outputImage: UIImage?
+    @StateObject private var renderer = RendererViewModel()
 
     let days = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]
 
@@ -14,8 +17,18 @@ struct EditView: View {
                 ForEach(days, id: \.self) { Text($0) }
             }
             .pickerStyle(.segmented)
-            
-            gridSection
+
+            HStack {
+                gridSection
+
+                VStack(alignment: .leading) {
+                    Text("未配置")
+                    List(ocrViewModel.unplacedTeachers) { teacher in
+                        Text(teacher.name)
+                    }
+                    .frame(width: 120)
+                }
+            }
             
             Text("備考欄")
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -28,7 +41,13 @@ struct EditView: View {
         .navigationTitle("編集")
         .toolbar {
             Button("生成") {
-                // RendererViewModel へデータ渡し
+                outputImage = renderer.render(assignments: ocrViewModel.assignments, day: selectedDay, memo: memo)
+                showShare = true
+            }
+        }
+        .sheet(isPresented: $showShare) {
+            if let image = outputImage {
+                ShareSheet(activityItems: [image])
             }
         }
     }

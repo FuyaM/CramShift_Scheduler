@@ -26,8 +26,16 @@ class OCRViewModel: ObservableObject {
         for o in observations {
             guard let best = o.topCandidates(1).first else { continue }
             if let teacher = registeredTeachers.first(where: { $0.name == best.string }) {
-                // TODO: バウンディングボックスから startSlot を推定する処理
-                let assignment = SlotAssignment(teacherName: teacher.name, startSlot: .A, span: 1)
+                let midY = o.boundingBox.midY
+                let slot: SlotType
+                switch midY {
+                case 0.8...1.0: slot = .Z
+                case 0.6..<0.8: slot = .A
+                case 0.4..<0.6: slot = .B
+                case 0.2..<0.4: slot = .C
+                default: slot = .D
+                }
+                let assignment = SlotAssignment(teacherName: teacher.name, startSlot: slot, span: 1)
                 detected.append(assignment)
             }
         }
