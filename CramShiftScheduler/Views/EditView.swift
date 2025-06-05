@@ -22,7 +22,6 @@ struct EditView: View {
                         .scaledToFit()
                         .frame(height: 150)
                 }
-
                 Picker("曜日", selection: $selectedDay) {
                     ForEach(days, id: \.self) { Text($0) }
                 }
