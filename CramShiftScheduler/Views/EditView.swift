@@ -1,34 +1,62 @@
 import SwiftUI
 
-/// OCR結果をグリッド表示し編集を行うビュー
+/// OCR結果をグリッド表示し編集とプレビューを行うビュー
 struct EditView: View {
     @ObservedObject var ocrViewModel: OCRViewModel
     @State private var selectedDay: String = "月曜日"
     @State private var memo: String = ""
+    @State private var showShare = false
+    @State private var outputImage: UIImage?
+    @StateObject private var renderer = RendererViewModel()
 
     let days = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"]
 
     var body: some View {
-        VStack {
-            Picker("曜日", selection: $selectedDay) {
-                ForEach(days, id: \.self) { Text($0) }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Picker("曜日", selection: $selectedDay) {
+                    ForEach(days, id: \.self) { Text($0) }
+                }
+                .pickerStyle(.segmented)
+
+                HStack(alignment: .top, spacing: 20) {
+                    gridSection
+
+                    VStack(alignment: .leading) {
+                        Text("未配置")
+                        List(ocrViewModel.unplacedTeachers) { teacher in
+                            Text(teacher.name)
+                        }
+                        .frame(width: 120)
+                    }
+
+                    ExportView(assignments: ocrViewModel.assignments,
+                               day: selectedDay,
+                               memo: memo)
+                        .frame(width: 250, height: 350)
+                        .border(Color.gray)
+                }
+
+                Text("備考欄")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                TextEditor(text: $memo)
+                    .border(Color.gray)
+                    .frame(height: 100)
             }
-            .pickerStyle(.segmented)
-            
-            gridSection
-            
-            Text("備考欄")
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top)
-            TextEditor(text: $memo)
-                .border(Color.gray)
-                .frame(height: 100)
+            .padding()
         }
-        .padding()
         .navigationTitle("編集")
         .toolbar {
             Button("生成") {
-                // RendererViewModel へデータ渡し
+                outputImage = renderer.render(assignments: ocrViewModel.assignments,
+                                             day: selectedDay,
+                                             memo: memo)
+                showShare = true
+            }
+        }
+        .sheet(isPresented: $showShare) {
+            if let image = outputImage {
+                ShareSheet(activityItems: [image])
             }
         }
     }
