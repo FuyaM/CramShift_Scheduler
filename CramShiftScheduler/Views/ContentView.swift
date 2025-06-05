@@ -15,10 +15,12 @@ struct ContentView: View {
                     TeacherListView()
                 }
                 Button("写真を撮る") {
+                    // カメラが利用可能かチェック
                     if UIImagePickerController.isSourceTypeAvailable(.camera) {
                         pickerSource = .camera
                         showPicker = true
                     } else {
+                        // カメラが使えないときはアラートを表示
                         showCameraAlert = true
                     }
                 }
