@@ -1,7 +1,9 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// OCR結果をグリッド表示し編集とプレビューを行うビュー
 struct EditView: View {
+    var image: UIImage?
     @ObservedObject var ocrViewModel: OCRViewModel
     @State private var selectedDay: String = "月曜日"
     @State private var memo: String = ""
@@ -14,6 +16,12 @@ struct EditView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if let img = image {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 150)
+                }
                 Picker("曜日", selection: $selectedDay) {
                     ForEach(days, id: \.self) { Text($0) }
                 }
@@ -26,8 +34,9 @@ struct EditView: View {
                         Text("未配置")
                         List(ocrViewModel.unplacedTeachers) { teacher in
                             Text(teacher.name)
+                                .onDrag { NSItemProvider(object: teacher.name as NSString) }
                         }
-                        .frame(width: 120)
+                        .frame(width: 120, height: 300)
                     }
 
                     ExportView(assignments: ocrViewModel.assignments,
@@ -62,13 +71,21 @@ struct EditView: View {
     }
 
     private var gridSection: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3)) {
-            ForEach(ocrViewModel.assignments) { assignment in
-                Text(assignment.teacherName)
-                    .frame(maxWidth: .infinity)
-                    .padding(4)
-                    .background(Color.yellow.opacity(0.3))
-                    .cornerRadius(4)
+        VStack {
+            ForEach(SlotType.allCases, id: \.self) { slot in
+                HStack {
+                    ForEach(0..<3) { column in
+                        ZStack {
+                            Rectangle()
+                                .stroke(Color.gray)
+                                .frame(width: 80, height: 40)
+                            if let a = ocrViewModel.assignments.first(where: { $0.startSlot == slot && $0.column == column }) {
+                                Text(a.teacherName)
+                            }
+                        }
+                        .onDrop(of: [.utf8PlainText], delegate: SlotDropDelegate(slot: slot, column: column, ocrViewModel: ocrViewModel))
+                    }
+                }
             }
         }
     }
@@ -76,6 +93,26 @@ struct EditView: View {
 
 struct EditView_Previews: PreviewProvider {
     static var previews: some View {
-        EditView(ocrViewModel: OCRViewModel())
+        EditView(image: nil, ocrViewModel: OCRViewModel())
+    }
+}
+
+struct SlotDropDelegate: DropDelegate {
+    let slot: SlotType
+    let column: Int
+    var ocrViewModel: OCRViewModel
+
+    func performDrop(info: DropInfo) -> Bool {
+        if let item = info.itemProviders(for: [.utf8PlainText]).first {
+            item.loadItem(forTypeIdentifier: UTType.utf8PlainText.identifier, options: nil) { data, _ in
+                if let data = data as? Data, let name = String(data: data, encoding: .utf8) {
+                    DispatchQueue.main.async {
+                        ocrViewModel.assign(teacherName: name, to: slot, column: column)
+                    }
+                }
+            }
+            return true
+        }
+        return false
     }
 }

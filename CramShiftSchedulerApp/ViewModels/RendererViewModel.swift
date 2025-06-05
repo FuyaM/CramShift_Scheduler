@@ -32,14 +32,18 @@ struct ExportView: View {
     private var grid: some View {
         VStack(alignment: .leading) {
             ForEach(SlotType.allCases, id: \.self) { slot in
-                HStack {
+                HStack(alignment: .top) {
                     Text("\(slot.rawValue)コマ")
                         .frame(width: 60, alignment: .leading)
-                    ForEach(assignments.filter { $0.startSlot == slot }) { a in
-                        Text(a.teacherName)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    ForEach(0..<3) { column in
+                        if let a = assignments.first(where: { $0.startSlot == slot && $0.column == column }) {
+                            Text(a.teacherName)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
+                            Spacer()
+                                .frame(maxWidth: .infinity)
+                        }
                     }
-                    Spacer()
                 }
             }
         }

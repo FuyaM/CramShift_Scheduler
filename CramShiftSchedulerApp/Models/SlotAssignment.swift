@@ -10,5 +10,6 @@ struct SlotAssignment: Identifiable, Codable {
     var id = UUID()
     var teacherName: String
     var startSlot: SlotType
+    var column: Int
     var span: Int
 }
